@@ -55,7 +55,27 @@
                     <canvas id="graficoPorcentaje" width="600" height="300"></canvas>
 
                 </div>
-            </div><br>
+            </div>
+            <div class="mt-4">
+    <h5>Tabla de Porcentajes de la Población</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="tablaPorcentajes">
+            <thead>
+                <tr>
+                    <th>Día</th>
+                    <th>Susceptibles (%)</th>
+                    <th>Infectados (%)</th>
+                    <th>Recuperados (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Aquí se insertarán las filas dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+            <br>
             <div class="col-md-12">
                 <div class="grafico" >
                     <h5>Gráfico 1: Cambio diario de S - Personas Suceptibles</h5>
@@ -110,6 +130,7 @@
                 generarGrafico('graficoI', 'Personas Infectadas I(t)', result["dias"], result["I"]);
                 generarGrafico('graficoR', 'Personas Recuperadas R(t)', result["dias"], result["R"]);
                 generarGraficoPorcentaje('graficoPorcentaje', result["dias"], result["S_pct"], result["I_pct"], result["R_pct"]);
+                llenarTablaPorcentajes(result["dias"], result["S_pct"], result["I_pct"], result["R_pct"]);
 
 
             })
@@ -211,6 +232,23 @@ function generarGraficoPorcentaje(idCanvas, labels, sData, iData, rData) {
     });
 }
 
+function llenarTablaPorcentajes(dias, sData, iData, rData) {
+    const tbody = document.querySelector('#tablaPorcentajes tbody');
+    tbody.innerHTML = ''; // Limpiar por si hay datos previos
+
+    for (let i = 0; i < dias.length; i++) {
+        const fila = document.createElement('tr');
+
+        fila.innerHTML = `
+            <td>${dias[i]}</td>
+            <td>${sData[i].toFixed(2)}</td>
+            <td>${iData[i].toFixed(2)}</td>
+            <td>${rData[i].toFixed(2)}</td>
+        `;
+
+        tbody.appendChild(fila);
+    }
+}
 
 
 </script>
