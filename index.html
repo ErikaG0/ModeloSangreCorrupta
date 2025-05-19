@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo SIR</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="./mis.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+    <div class="container mt-5">
+
+        <div class="row">
+            <div id="datos" class="col-12">
+                <h3>Datos Modelo</h3>
+                <form>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="inputEmail4">Número de personas infectadas</label>
+                            <input type="number" class="form-control" id="infec">
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="inputPassword4">Número de dias en que una persona se cura.</label>
+                            <input type="number" class="form-control" id="tiempoCurarse">
+                        </div>
+                        <br>
+                        <div class="form-group col-md-6">
+                            <label for="inputPassword4">Tamaño de la Población</label>
+                            <input type="number" class="form-control" id="poblacion">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="inputEmail4">Número de personas contagiadas por dia</label>
+                            <input type="number" class="form-control" id="contagioXdia">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+        <div class="alert alert-info mt-3" id="mensajeFinal"></div>
+
+
+        <div class="row mt-12">
+            <div class="col-md-12">
+                <div class="grafico" >
+                    <h5>Impacto de la poblacion</h5>
+                    <canvas id="graficoPorcentaje" width="600" height="300"></canvas>
+
+                </div>
+            </div><br>
+            <div class="col-md-12">
+                <div class="grafico" >
+                    <h5>Gráfico 1: Cambio diario de S - Personas Suceptibles</h5>
+                    <canvas id="graficoS"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row mt-12">
+            <div class="col-md-12">
+                <div class="grafico" >
+                    <h5>Gráfico 2: Cambio diario de I - Personas Infectadas</h5>
+                    <canvas id="graficoI"></canvas>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="grafico">
+
+                    <h5>Gráfico 3: Cambio diario de R - Personas Recuperadas</h5>
+                    <canvas id="graficoR"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+
+<script>
+    document.querySelector('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const data = {
+            t: parseInt(document.getElementById('infec').value),
+            r: parseInt(document.getElementById('tiempoCurarse').value),
+            p: parseInt(document.getElementById('poblacion').value),
+            a: parseInt(document.getElementById('contagioXdia').value)
+        };
+
+        fetch('/procesar-datos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(result => {
+                document.getElementById('mensajeFinal').textContent = `La pandemia termina alrededor del día ${result["dia_final"]}.`;
+
+                generarGrafico('graficoS', 'Personas Susceptibles S(t)', result["dias"], result["S"]);
+                generarGrafico('graficoI', 'Personas Infectadas I(t)', result["dias"], result["I"]);
+                generarGrafico('graficoR', 'Personas Recuperadas R(t)', result["dias"], result["R"]);
+                generarGraficoPorcentaje('graficoPorcentaje', result["dias"], result["S_pct"], result["I_pct"], result["R_pct"]);
+
+
+            })
+            .catch(err => console.error(err));
+    });
+
+    function generarGrafico(idCanvas, label, labels, data) {
+        console.log("ingresa generador")
+        const ctx = document.getElementById(idCanvas).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: 'blue',
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        title: { display: true, text: 'Personas' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Días' }
+                    }
+                }
+            }
+        });
+    }
+
+    let charts = {}; 
+
+function generarGraficoPorcentaje(idCanvas, labels, sData, iData, rData) {
+    const ctx = document.getElementById(idCanvas).getContext('2d');
+
+    
+    if (charts[idCanvas]) {
+        charts[idCanvas].destroy();
+    }
+
+    charts[idCanvas] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Susceptibles (%)',
+                    data: sData,
+                    borderColor: 'orange',
+                    fill: false,
+                    tension: 0.1
+                },
+                {
+                    label: 'Infectados (%)',
+                    data: iData,
+                    borderColor: 'red',
+                    fill: false,
+                    tension: 0.1
+                },
+                {
+                    label: 'Recuperados (%)',
+                    data: rData,
+                    borderColor: 'green',
+                    fill: false,
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Porcentaje de la Población en S, I, R'
+                }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: '% de la población'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Días'
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+
+</html>
